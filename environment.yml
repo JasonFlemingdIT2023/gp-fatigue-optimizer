@@ -1,0 +1,12 @@
+name: gp-fatigue
+channels:
+  - defaults
+dependencies:
+  - pip=26.0.1
+  - python=3.11.15
+  - pip:
+      - matplotlib==3.10.8
+      - numpy==2.4.3
+      - scipy==1.17.1
+      - torch==2.10.0
+prefix: C:\conda\envs\gp-fatigue
