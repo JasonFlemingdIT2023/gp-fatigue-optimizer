@@ -16,12 +16,16 @@ class GaussianProcess:
 
     def __init__(self, kernel, noise_var: float = 1e-4) -> None:
         self.kernel = kernel
-        self.noise_var = noise_var
+        # noise_var also stored in log-space so it stays positive during optimization
+        self.log_noise_var = torch.tensor(
+            torch.log(torch.tensor(noise_var)).item(), requires_grad=True
+        )
 
         # Set during fit()
         self._X_train: torch.Tensor | None = None
-        self._L: torch.Tensor | None = None       # Cholesky factor of K_y
-        self._alpha: torch.Tensor | None = None   # K_y^{-1} y
+        self._y_train: torch.Tensor | None = None  # needed for LML recomputation
+        self._L: torch.Tensor | None = None        # Cholesky factor of K_y
+        self._alpha: torch.Tensor | None = None    # K_y^{-1} y
 
     def fit(self, X_train: torch.Tensor, y_train: torch.Tensor) -> None:
         """Condition the GP on training data.
@@ -35,13 +39,15 @@ class GaussianProcess:
             y_train: (n,) training targets.
         """
         self._X_train = X_train
+        self._y_train = y_train
         n = X_train.shape[0]
 
         # Build training kernel matrix: K_ij = k(x_i, x_j)
         K = self.kernel(X_train, X_train)  # (n, n) and positive definite
 
         # Add noise variance to diagonal: K_y = K + sigma_n^2 * I
-        K_y = K + self.noise_var * torch.eye(n, dtype=X_train.dtype)
+        # Use exp(log_noise_var) so the value stays positive
+        K_y = K + torch.exp(self.log_noise_var) * torch.eye(n, dtype=X_train.dtype)
 
         # Cholesky factorization: L @ L.T = K_y
         self._L = cholesky(K_y)

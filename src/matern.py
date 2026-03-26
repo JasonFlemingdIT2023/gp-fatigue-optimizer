@@ -1,11 +1,16 @@
+import math
 import torch
 
 class MaternKernel:
-    
-    def __init__(self, length_scale: float=1.0,output_variance: float=1.0, nu: float=2.5):
-        self.length_scale = length_scale
-        self.output_variance = output_variance
+
+    def __init__(self, length_scale: float=1.0, output_variance: float=1.0, nu: float=2.5):
         self.nu = nu
+
+        # Store hyperparameters in log-space so exp() keeps them strictly positive.
+        # requires_grad=True allows torch.optim.LBFGS to compute d(LML)/d(theta)
+        # via autograd -- same trick as GPyTorch's raw_lengthscale.
+        self.log_length_scale = torch.tensor(math.log(length_scale), requires_grad=True)
+        self.log_output_variance = torch.tensor(math.log(output_variance), requires_grad=True)
         
     def _compute_distance(self, X1: torch.Tensor, X2: torch.Tensor) -> torch.Tensor:
         '''
@@ -25,17 +30,21 @@ class MaternKernel:
         return torch.sqrt(torch.sum(diff**2, dim=-1)) #(n,m)
     
     def _matern_12(self, r: torch.Tensor) -> torch.Tensor:
-         return self.output_variance * torch.exp(-r / self.length_scale)
-
+        ls = torch.exp(self.log_length_scale)
+        ov = torch.exp(self.log_output_variance)
+        return ov * torch.exp(-r / ls)
 
     def _matern_32(self, r: torch.Tensor) -> torch.Tensor:
-        sqrt3r = (3 ** 0.5) * r / self.length_scale
-        return self.output_variance * (1 + sqrt3r) * torch.exp(-sqrt3r)
-    
+        ls = torch.exp(self.log_length_scale)
+        ov = torch.exp(self.log_output_variance)
+        sqrt3r = (3 ** 0.5) * r / ls
+        return ov * (1 + sqrt3r) * torch.exp(-sqrt3r)
 
     def _matern_52(self, r: torch.Tensor) -> torch.Tensor:
-        sqrt5r = (5 ** 0.5) * r / self.length_scale
-        return self.output_variance * (1 + sqrt5r + (5 * r**2) / (3* self.length_scale**2)) * torch.exp(-sqrt5r)
+        ls = torch.exp(self.log_length_scale)
+        ov = torch.exp(self.log_output_variance)
+        sqrt5r = (5 ** 0.5) * r / ls
+        return ov * (1 + sqrt5r + (5 * r**2) / (3 * ls**2)) * torch.exp(-sqrt5r)
     
     def __call__(self, X1: torch.Tensor,X2: torch.Tensor) -> torch.Tensor:
        r = self._compute_distance(X1, X2)
