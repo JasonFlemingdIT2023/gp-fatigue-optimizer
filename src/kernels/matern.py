@@ -27,7 +27,9 @@ class MaternKernel:
         
         '''
         diff = X1[:, None, :] - X2[None, :, :] #(n,m,d)
-        return torch.sqrt(torch.sum(diff**2, dim=-1)) #(n,m)
+        # 1e-10 prevents sqrt(0) whose gradient is inf -- happens on diagonal
+        # of kernel(X_train, X_train) where every point is compared with itself.
+        return torch.sqrt(torch.sum(diff**2, dim=-1) + 1e-10) #(n,m)
     
     def _matern_12(self, r: torch.Tensor) -> torch.Tensor:
         ls = torch.exp(self.log_length_scale)

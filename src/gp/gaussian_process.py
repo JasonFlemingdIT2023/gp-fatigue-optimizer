@@ -1,3 +1,4 @@
+import math
 import torch
 
 from .cholesky import cholesky, solve_cholesky
@@ -16,10 +17,10 @@ class GaussianProcess:
 
     def __init__(self, kernel, noise_var: float = 1e-4) -> None:
         self.kernel = kernel
-        # noise_var also stored in log-space so it stays positive during optimization
-        self.log_noise_var = torch.tensor(
-            torch.log(torch.tensor(noise_var)).item(), requires_grad=True
-        )
+        # noise_var stored in log-space so exp() keeps it strictly positive.
+        # requires_grad=False because noise_var is fixed (not optimised) --
+        # it acts as a numerical stability term only.
+        self.log_noise_var = torch.tensor(math.log(noise_var), requires_grad=False)
 
         # Set during fit()
         self._X_train: torch.Tensor | None = None
@@ -94,7 +95,9 @@ class GaussianProcess:
         )
 
         # Posterior variance: sigma^2 = k(x*,x*) - ||v_star||^2,  shape (m,)
-        var = K_star_diag - (V ** 2).sum(dim=0)
+        # Clamp to 1e-10: numerical errors can produce tiny negative values,
+        # which would cause nan when taking sqrt(var) later.
+        var = torch.clamp(K_star_diag - (V ** 2).sum(dim=0), min=1e-10)
 
         return mu, var
     

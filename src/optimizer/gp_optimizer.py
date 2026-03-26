@@ -3,8 +3,8 @@ import torch
 from gp.gaussian_process import GaussianProcess
 from gp.gradients import posterior_gradient
 from linesearch.wolfe import wolfe_line_search
-from ground_truth import fatigue_life
-from matern import MaternKernel
+from ground_truth.fatigue_life import fatigue_life
+from kernels.matern import MaternKernel
 
 
 # ---------------------------------------------------------------------------
