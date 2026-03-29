@@ -62,13 +62,6 @@ class MaternKernel:
     
 
 
-X = torch.tensor([[0.0], [1.0], [2.0]])
-
-k = MaternKernel(length_scale=1.0, output_variance=1.0, nu=2.5)
-K = k(X, X)
-print(K)
-
-        
         
     
     
