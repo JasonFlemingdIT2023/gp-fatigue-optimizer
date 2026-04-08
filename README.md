@@ -8,7 +8,7 @@ A from-scratch implementation of a GIBO-inspired Bayesian optimization algorithm
 
 [GIBO](https://github.com/sarmueller/gibo) (Müller et al., NeurIPS 2021) optimizes a GP posterior mean via gradient ascent in an inner loop that terminates after a fixed number of steps *M*. This project investigates replacing *M* with an **adaptive line search termination criterion**. This would be the core idea of the accompanying Bachelor thesis.
 
-Everything is implemented from scratch to make the internals fully transparent: Cholesky factorization, GP inference, posterior gradients, and the line search all live in plain PyTorch with no black-box dependencies. The gradient information aquisition function from GIBO is not taken into account. The focus is particulary on the line search.
+Everything is implemented from scratch to make the internals fully transparent: Cholesky factorization, GP inference, posterior gradients, and the line search in plain PyTorch with no black box dependencies. The gradient information aquisition function from GIBO is not taken into account. The focus is particulary on the line search.
 
 ---
 
@@ -26,43 +26,6 @@ Validated against three baselines over 20 seeds, 60 function evaluations:
 GP-WLS reaches competitive mean regret with Vanilla BO. The higher variance is expected, because it is a local algorithm without an exploration term. See `notebooks/experiments.ipynb` for full plots and discussion.
 
 ![Regret curves](experiments/results/hartmann_comparison/regret_log.png)
-
----
-
-## Project Structure
-
-```
-gp-wls/
-│
-├── src/
-│   ├── kernels/matern.py          #Matern kernel (ν = 0.5 / 1.5 / 2.5)
-│   ├── gp/
-│   │   ├── cholesky.py            #Naive Cholesky --> educational, loop-based
-│   │   ├── gaussian_process.py    # fit, predict, LML, hyperparameter opt
-│   │   └── gradients.py           #grad μ(x) via PyTorch autograd
-│   ├── linesearch/wolfe.py        #Bracket-and-zoom Wolfe line search
-│   ├── optimizer/gp_optimizer.py  #GP-WLS main loop
-│   ├── ground_truth/
-│   │   ├── hartmann.py            #Hartmann-6D benchmark
-│   │   └── fatigue_life.py        #S355 fatigue life model (secondary)
-│   └── baselines/
-│       ├── random_search.py
-│       ├── vanilla_bo.py          #UCB acquisition
-│       └── ars.py                 #Augmented Random Search (Mania et al. 2018)
-│
-├── experiments/
-│   ├── compare.py                 #4 methods × 20 seeds × 60 evals
-│   └── results/hartmann_comparison/
-│       ├── regret_data.pt         #raw tensors --> replot without rerunning
-│       ├── regret_log.png
-│       ├── regret_linear.png
-│       └── regret_boxplot.png
-│
-└── notebooks/
-    ├── gp_and_kernel.ipynb        #GP theory, Matérn vs RBF, LML
-    ├── GP-WLS.ipynb               #Method: posterior gradient, line search, GIBO connection
-    └── experiments.ipynb          #Results, plots, discussion
-```
 
 ---
 
